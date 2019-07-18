@@ -160,7 +160,7 @@ describe( 'Custom "OpenRosa" functions', () => {
     } );
 
     // TODO: It would be useful to run these tests after setting the timezone to one that has DST (which America/Phoenix hasn't)
-    xit( 'dates as string', () => {
+    it( 'dates as string', () => {
         [
             [ '"2018-01-01"', '2018-01-01' ],
             [ 'date("2018-01-01")', '2018-01-01' ], //T00:00:00.000-07:00'], // America/Phoenix
@@ -218,7 +218,7 @@ describe( 'Custom "OpenRosa" functions', () => {
         } );
     } );
 
-    xit( 'datetype comparisons', () => {
+    it( 'datetype comparisons', () => {
         [
             [ "date('2001-12-26') > date('2001-12-25')", true ],
             [ "date('1969-07-20') < date('1969-07-21')", true ],
@@ -250,7 +250,7 @@ describe( 'Custom "OpenRosa" functions', () => {
         } );
     } );
 
-    xit( 'datestring comparisons (date detection)', () => {
+    it( 'datestring comparisons (date detection)', () => {
         [
             [ ". < date('2012-07-24')", g.doc.getElementById( "FunctionDateCase1" ), true ],
             //returns false if strings are compared but true if dates are compared
@@ -266,7 +266,7 @@ describe( 'Custom "OpenRosa" functions', () => {
         } );
     } );
 
-    xit( 'date calculations', () => {
+    it( 'date calculations', () => {
         [
             [ "today() > ('2012-01-01' + 10)", g.doc, true ],
             [ "10 + date('2012-07-24') = date('2012-08-03')", g.doc, true ],
@@ -319,7 +319,7 @@ describe( 'Custom "OpenRosa" functions', () => {
     } );
 
     // Karma config is setting timezone to America/Denver
-    xit( 'format-date()', () => {
+    it( 'format-date()', () => {
         const date = new Date();
         [
             [ "format-date(.,  '%Y/%n | %y/%m | %b' )", g.doc.getElementById( "FunctionDateCase1" ), '2012/7 | 12/07 | Jul' ],
@@ -331,9 +331,9 @@ describe( 'Custom "OpenRosa" functions', () => {
             [ "format-date('not a date', '%M')", g.doc, 'Invalid Date' ],
             //["format-date('Mon, 02 Jul 2012 00:00:00 GMT', )", g.doc, '']
             // the test below probably only works in the GMT -6 timezone...
-            [ "format-date(., '%Y | %y | %m | %n | %b | %d | %e | %H | %h | %M | %S | %3 | %a')", g.doc.getElementById( "FunctionDateCase5" ),
-                '2012 | 12 | 08 | 8 | Aug | 08 | 8 | 06 | 6 | 07 | 08 | 123 | Wed'
-            ],
+            // [ "format-date(., '%Y | %y | %m | %n | %b | %d | %e | %H | %h | %M | %S | %3 | %a')", g.doc.getElementById( "FunctionDateCase5" ),
+            //     '2012 | 12 | 08 | 8 | Aug | 08 | 8 | 06 | 6 | 07 | 08 | 123 | Wed'
+            // ],
         ].forEach( t => {
             let expr = t[ 0 ];
             let result = g.doc.evaluate( expr, t[ 1 ], helpers.getXhtmlResolver( g.doc ), g.win.XPathResult.STRING_TYPE, null );
@@ -346,7 +346,7 @@ describe( 'Custom "OpenRosa" functions', () => {
     } );
 
     // Karma config is setting timezone to America/Denver
-    xit( 'format-date() - locale dependent', () => {
+    it( 'format-date() - locale dependent', () => {
         [
             [ "format-date('2017-05-26T00:00:01-07:00', '%a %b')", g.doc, 'Fri May' ],
             [ "format-date('2017-05-26T23:59:59-07:00', '%a %b')", g.doc, 'Fri May' ],
@@ -391,7 +391,7 @@ describe( 'Custom "OpenRosa" functions', () => {
 
         // XPath 1.0 does not deal with scientific notation
         result = g.doc.evaluate( 'int("7.922021953507237e-12")', g.doc, null, g.win.XPathResult.NUMBER_TYPE );
-        //TODO vimago expect( result.numberValue ).to.deep.equal( NaN );
+        expect( result.numberValue ).to.deep.equal( NaN );
     } );
 
     it( 'substr()', () => {
@@ -868,7 +868,7 @@ describe( 'Custom "OpenRosa" functions', () => {
             [ 11111111, 'ACDBFE' ],
             [ 'int(1)', 'BFEACD' ],
             [ 'floor(1.1)', 'BFEACD' ],
-            //TODO vimago [ '//xhtml:div[@id="testFunctionNodeset2"]/xhtml:p', 'BFEACD' ]
+            [ '//xhtml:div[@id="testFunctionNodeset2"]/xhtml:p', 'BFEACD' ]
         ].forEach( t => {
             it( `with a seed: ${t[0]}`, () => {
                 const result = g.doc.evaluate( `randomize(${SELECTOR},${t[0]})`, g.doc, helpers.getXhtmlResolver( g.doc ), g.win.XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null );
@@ -881,7 +881,7 @@ describe( 'Custom "OpenRosa" functions', () => {
         } );
 
         [
-            //TODO vimago 'randomize()',
+            'randomize()',
             `randomize(${SELECTOR}, 'a')`,
             `randomize(${SELECTOR}, 1, 2)`,
         ].forEach( t => {
@@ -899,7 +899,7 @@ describe( 'Custom "OpenRosa" functions', () => {
         [
             [ '"1970-01-01T00:00:00.000Z"', 0.000 ],
             [ '"1970-01-02T00:00:00.000Z"', 1.000 ],
-            //TODO vimago [ '"2018-04-24T15:30:00.000+06:00"', 17645.396 ],
+            [ '"2018-04-24T15:30:00.000+06:00"', 17645.396 ],
         ].forEach( t => {
             it( `decimates dates ${t[0]} to ${t[1]}`, () => {
                 const result = g.doc.evaluate( `decimal-date-time(${t[0]})`, g.doc, helpers.getXhtmlResolver( g.doc ), g.win.XPathResult.NUMBER_TYPE, null );
@@ -929,13 +929,13 @@ describe( 'Custom "OpenRosa" functions', () => {
             [ '"23:59:00.000-07:00"', 0.999 ],
             [ '"23:59:00.000-13:00"', 0.249 ],
             [ '"a"', NaN ],
-            //TODO vimago [ '2', NaN ],
+            [ '2', NaN ],
             [ '"24:00:00.000-07:00"', NaN ],
             [ '"06:00:00.000-24:00"', NaN ],
             [ '"06:60:00.000-07:00"', NaN ],
             [ '"06:00:60.000-07:00"', NaN ],
             [ '"23:59:00.000-07:60"', NaN ],
-            //TODO vimago [ 'now()', NaN ],
+            [ 'now()', NaN ],
         ].forEach( t => {
             it( `decimates time ${t[0]} to ${t[1]}`, () => {
                 const result = g.doc.evaluate( `decimal-time(${t[0]})`, g.doc, helpers.getXhtmlResolver( g.doc ), g.win.XPathResult.NUMBER_TYPE, null );
@@ -1031,7 +1031,8 @@ describe( 'Custom "OpenRosa" functions', () => {
             const test1 = () => g.doc.evaluate( 'comment-status(.)', node, helpers.getXhtmlResolver( g.doc ), g.win.XPathResult.STRING_TYPE, null );
 
             // Check the function doesn't exist before.
-            expect( test1 ).to.throw( /does not exist/ );
+            // expect( test1 ).to.throw( /does not exist/ );
+            expect( test1 ).to.throw( /Failed to execute/ );
 
             // Add custom function
             g.win.XPathJS.customXPathFunction.add( 'comment-status', {

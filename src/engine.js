@@ -1,10 +1,26 @@
 require('./date-extensions');
 var ExtendedXpathEvaluator = require('./extended-xpath');
 var openrosaExtensions = require('./openrosa-extensions');
-var translate = require('./translate');
+var settings = require('./settings');
 
 module.exports = (function(){
   var module = {
+
+    customXPathFunction: {
+			// type: {
+			// 	StringType: StringType,
+			// 	NumberType: NumberType,
+			// 	NodeSetType: NodeSetType,
+			// 	BooleanType: BooleanType
+			// },
+			add: function(name, fnObj){
+				functions[''][name] = fnObj;
+			},
+			remove: function(name) {
+				delete functions[''][name];
+			}
+		},
+
     /**
 		 * Get the current list of DOM Level 3 XPath window and document objects
 		 * that are in use.
@@ -51,11 +67,11 @@ module.exports = (function(){
 				},
 				'document': {
           evaluate: function(e, contextPath, namespaceResolver, resultType, result) {
-            var extensions = openrosaExtensions(translate);
-            var wrappedXpathEvaluator = function(v) {
+            var extensions = openrosaExtensions(settings);
+            var wrappedXpathEvaluator = function(v, node) {
               if(resultType < 7 || v.startsWith('//')) resultType = null;
               var wrappedResultType = resultType || XPathResult.ANY_TYPE;
-              return evaluator.evaluate(v, contextPath, namespaceResolver, wrappedResultType || XPathResult.ANY_TYPE, result);
+              return evaluator.evaluate(v, node || contextPath, namespaceResolver, wrappedResultType || XPathResult.ANY_TYPE, result);
             };
             var xevaluator = new ExtendedXpathEvaluator(wrappedXpathEvaluator, extensions);
             return xevaluator.evaluate.apply(xevaluator, arguments);

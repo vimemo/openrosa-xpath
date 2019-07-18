@@ -26,8 +26,28 @@ function processOperation(lhs, op, rhs, settings) {
     rhs.v = Number(rhs.v);
   }
 
-  if(op.v === '-' && (isNaN(lhs.v) || isNaN(rhs.v))) {
-    return NaN;
+  //Comparing node expressions with numbers/strings/etc
+  if(lhs.t === 'arr' && lhs.v.length === 1 && rhs.t === 'num') {
+    if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(lhs.v[0])) {
+      lhs = {t: 'num', v: dateToDays(lhs.v[0])};
+    }
+  }
+  if(rhs.t === 'arr' && rhs.v.length === 1 && lhs.t === 'num') {
+    if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(rhs.v[0])) {
+      rhs = {t: 'num', v: dateToDays(rhs.v[0])};
+    }
+  }
+
+  if(lhs.t === 'arr' && lhs.v.length === 1 && rhs.t === 'str') {
+    lhs = {t: 'str', v: lhs.v[0]};
+  }
+  if(rhs.t === 'arr' && rhs.v.length === 1 && lhs.t === 'str') {
+    rhs = {t: 'str', v: rhs.v[0]};
+  }
+  if(rhs.t === 'arr' && rhs.v.length === 1 &&
+    lhs.t === 'arr' && lhs.v.length === 1) {
+    lhs = {t: 'str', v: lhs.v[0]};
+    rhs = {t: 'str', v: rhs.v[0]};
   }
 
   if(lhs.t === 'str' && /^\d\d\d\d-\d{1,2}-\d{1,2}/.test(lhs.v)) {
@@ -38,11 +58,34 @@ function processOperation(lhs, op, rhs, settings) {
     rhs = {t: 'num', v: dateToDays(rhs.v)};
   }
 
+  if(op.v === '-' && (isNaN(lhs.v) || isNaN(rhs.v))) {
+    return NaN;
+  }
+
   if(/^(=|!=)$/.test(op.v)) {
     if(lhs.t === 'str' && rhs.t === 'bool') {
-      lhs = {t: 'bool', v: Boolean(lhs.v)};
+      if(lhs.v.length > 0 && lhs.v === '1') {
+        lhs = {t: 'bool', v: true};
+      } else if(lhs.v === '') {
+        lhs = {t: 'bool', v: false};
+      } else {
+        lhs = {t: 'bool', v: undefined};
+      }
     }
     if(rhs.t === 'str' && lhs.t === 'bool') {
+      if(rhs.v.length > 0 && rhs.v === '1') {
+        rhs = {t: 'bool', v: true};
+      } else if(rhs.v === '') {
+        rhs = {t: 'bool', v: false};
+      } else {
+        rhs = {t: 'bool', v: undefined};
+      }
+    }
+
+    if(lhs.t === 'num' && rhs.t === 'bool') {
+      lhs = {t: 'bool', v: Boolean(lhs.v)};
+    }
+    if(rhs.t === 'num' && lhs.t === 'bool') {
       rhs = {t: 'bool', v: Boolean(rhs.v)};
     }
   }

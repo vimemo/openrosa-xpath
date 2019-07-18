@@ -146,7 +146,7 @@ describe( 'native boolean functions', () => {
             // node check
             [ "lang('sl')", g.doc.getElementById( 'testLang3' ), true ], //
             // attribute node check
-            //TODO vimago [ "lang('sr-Cyrl-bg')", helpers.filterAttributes( g.doc.getElementById( 'testLang4' ).attributes )[ 0 ], true ]
+            [ "lang('sr-Cyrl-bg')", helpers.filterAttributes( g.doc.getElementById( 'testLang4' ).attributes )[ 0 ], true ]
         ].forEach( t => {
             const result = g.doc.evaluate( t[ 0 ], t[ 1 ], helpers.getXhtmlResolver( g.doc ), g.win.XPathResult.BOOLEAN_TYPE, null );
             expect( result.booleanValue ).to.equal( t[ 2 ] );

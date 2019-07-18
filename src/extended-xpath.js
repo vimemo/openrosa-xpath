@@ -22,6 +22,7 @@ var DATE_STRING = /^\d\d\d\d-\d{1,2}-\d{1,2}(?:T\d\d:\d\d:\d\d\.?\d?\d?(?:Z|[+-]
 var FUNCTION_NAME = /^[a-z]/;
 var NUMERIC_COMPARATOR = /(>|<)/;
 var BOOLEAN_COMPARATOR = /(=)/;
+var COMPARATOR = /(=|<|>)/;
 
 var TOO_MANY_ARGS = new Error('too many args');
 var TOO_FEW_ARGS = new Error('too few args');
@@ -35,7 +36,8 @@ function dateToDays(d) {
     temp = d.split('-');
     temp = new Date(temp[0], temp[1]-1, temp[2]);
   }
-  return (temp.getTime()) / (1000 * 60 * 60 * 24);
+  var r = (temp.getTime()) / (1000 * 60 * 60 * 24);
+  return Math.round(r*100000)/100000;
 }
 
 function checkMinMaxArgs(args, min, max) {
@@ -191,6 +193,7 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
    * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/evaluate
    */
   this.evaluate = function(input, cN, nR, rT, r) {
+
     if(rT === XPathResult.NUMBER_TYPE && input.indexOf('(') < 0 && !input.startsWith('/')) {
       input = input.replace('\n', ''); //replaces new lines of expressions without functions
       if(input.indexOf('mod')>0) { // to support 1mod1 or any weirdness
@@ -213,7 +216,7 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
       return ns.namespace(input, cN);
     }
 
-    if(/^local-name|namespace-uri|name\(|child::|parent::|descendant::|descendant-or-self::|ancestor::|ancestor-or-self::sibling|following::|following-sibling::|preceding-sibling::|preceding::|attribute::/.test(input)) {
+    if(/^lang\(|local-name|namespace-uri|name\(|child::|parent::|descendant::|descendant-or-self::|ancestor::|ancestor-or-self::sibling|following::|following-sibling::|preceding-sibling::|preceding::|attribute::/.test(input)) {
       var args = input.substring(
         input.indexOf('(')+1,
         input.lastIndexOf(')')
@@ -222,8 +225,8 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
       if(args.length > 1) { throw TOO_MANY_ARGS; }
       if(args.length < 1) { throw TOO_FEW_ARGS; }
       if(args[0].length && !isNaN(args[0])) { throw INVALID_ARGS; }
-
-      return wrapped(input);
+      if(input.startsWith('lang(') && cN.nodeType === 2) cN = cN.ownerElement;
+      return wrapped(input, cN);
     }
 
     if((rT > 3 && !input.startsWith('randomize')) ||
@@ -401,6 +404,9 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
             if(rT === XPathResult.BOOLEAN_TYPE) {
               if(NUMERIC_COMPARATOR.test(input)) expectedReturnType = XPathResult.NUMBER_TYPE;
               if(BOOLEAN_COMPARATOR.test(input)) expectedReturnType = XPathResult.BOOLEAN_TYPE;
+              if(COMPARATOR.test(input) && cur.t === 'fn' && /^(date|date-time)$/.test(cur.v)) {
+                expectedReturnType = XPathResult.STRING_TYPE;
+              }
             }
             peek().tokens.push(callFn(cur.v, cur.tokens, expectedReturnType));
           } else {

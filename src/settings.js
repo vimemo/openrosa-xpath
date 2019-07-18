@@ -1,3 +1,5 @@
 module.exports = {
-  allowStringComparison: false
+  allowStringComparison: false,
+  includeTimeForTodayString: false,
+  returnCurrentTimeForToday: false
 };

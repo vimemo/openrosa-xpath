@@ -111,7 +111,7 @@ function distance(geopoints) {
   return Math.abs(Math.round(distance * PRECISION)) / PRECISION;
 }
 
-var openrosa_xpath_extensions = function(translate) {
+var openrosa_xpath_extensions = function(settings) {
   var
       TOO_MANY_ARGS = new Error('too many args'),
       TOO_FEW_ARGS = new Error('too few args'),
@@ -161,7 +161,7 @@ var openrosa_xpath_extensions = function(translate) {
             v = c == 'x' ? r : r&0x3|0x8;
         return v.toString(16);
       },
-      _date = function(it) {
+      _date = function(it, keepTime) {
         var temp, t;
         if(it.v instanceof Date) {
           return new Date(it.v);
@@ -173,6 +173,7 @@ var openrosa_xpath_extensions = function(translate) {
           temp.setDate(1 + parseInt(it, 10));
           return temp;
         } else if(DATE_STRING.test(it)) {
+          if(keepTime) return new Date(it);
           t = it.indexOf('T');
           if(t !== -1) it = it.substring(0, t);
           temp = it.split('-');
@@ -207,7 +208,7 @@ var openrosa_xpath_extensions = function(translate) {
         return _dateForReturnType(it, rt);
       },
       format_date = function(date, format) {
-        date = _date(date);
+        date = _date(date, true);
         if(!format) return '';
         format = _str(format);
         if(!date) return 'Invalid Date';
@@ -222,6 +223,7 @@ var openrosa_xpath_extensions = function(translate) {
           secTicks: date.getTime(),
           dow: 1 + date.getDay(),
         };
+        var locale = window ? window.enketoFormLocale : undefined;
         for(i=0; i<format.length; ++i) {
           c = format.charAt(i);
 
@@ -242,7 +244,7 @@ var openrosa_xpath_extensions = function(translate) {
             } else if (c === 'n') {  //numeric month
               sb += f.month;
             } else if (c === 'b') {  //short text month
-              sb += translate('date.month.' + f.month);
+              sb += date.toLocaleDateString( locale, { month: 'short' } );
             } else if (c === 'd') {  //0-padded day of month
               sb += _zeroPad(f.day, 2);
             } else if (c === 'e') {  //day of month
@@ -259,7 +261,7 @@ var openrosa_xpath_extensions = function(translate) {
               // sb += _zeroPad(f.secTicks, 3);
               sb += _zeroPad(f.millis, 3);
             } else if (c === 'a') {  //Three letter short text day
-              sb += translate('date.dayofweek.' + f.dow);
+              sb += date.toLocaleDateString( locale, { weekday: 'short' } );
             } else if (c === 'Z' || c === 'A' || c === 'B') {
               throw new Error('unsupported escape in date format string [%' + c + ']');
             } else {
@@ -273,8 +275,8 @@ var openrosa_xpath_extensions = function(translate) {
         return sb;
       },
       func, process, ret = {},
-      now_and_today = function(rt) {
-        return _dateForReturnType(ret._now(), rt);
+      now_and_today = function(rt, resetTime) {
+        return _dateForReturnType(ret._now(resetTime), rt);
       };
 
   func = {
@@ -348,10 +350,12 @@ var openrosa_xpath_extensions = function(translate) {
     },
     'decimal-date': function(date) {
       if(arguments.length > 1) throw TOO_MANY_ARGS;
-      return XPR.number(Date.parse(_str(date)) / MILLIS_PER_DAY);
+      var res = Date.parse(_str(date)) / MILLIS_PER_DAY;
+      return XPR.number(Math.round(res * 1000)/1000);
     },
     'decimal-time': function(r) {
       if(arguments.length > 1) throw TOO_MANY_ARGS;
+      if(r.t === 'num') return XPR.number(NaN);
       var time = r.v;
       // There is no Time type, and so far we don't need it so we do all validation
       // and conversion here, manually.
@@ -404,6 +408,7 @@ var openrosa_xpath_extensions = function(translate) {
       return XPR.boolean(a.v.endsWith(b.v));
     },
     int: function(v) {
+      if(v.t === 'str' && v.v.indexOf('e-')>0) return XPR.number(NaN);
       v = _str(v);
       if(v.indexOf('e-')>0) return XPR.number(0);
       return XPR.number(parseInt(v, 10));
@@ -465,7 +470,16 @@ var openrosa_xpath_extensions = function(translate) {
       if(arguments.length > 1) throw TOO_MANY_ARGS;
       return XPR.boolean(!r.v);
     },
-    now: function(rt) { return now_and_today(rt); },
+    now: function(rt) {
+      return now_and_today(rt);
+    },
+    today: function(rt) {
+      var r = now_and_today(rt, !settings.returnCurrentTimeForToday);
+      if(rt === XPathResult.STRING_TYPE && !settings.includeTimeForTodayString) {
+        r.v = r.v.split('T')[0];
+      }
+      return r;
+    },
     /**
      * The once function returns the value of the parameter if its own value
      * is not empty, NaN, [Infinity or -Infinity]. The naming is therefore misleading!
@@ -494,7 +508,7 @@ var openrosa_xpath_extensions = function(translate) {
     pow: function(x, y) { return XPR.number(Math.pow(_float(x), _float(y))); },
     random: function() { return XPR.number(Math.random()); },
     randomize: function(r) {
-      if(arguments.length === 0) throw TOO_FEW_ARGS;
+      if(arguments.length === 1) throw TOO_FEW_ARGS;//only rT passed
       if(arguments.length > 3) throw TOO_MANY_ARGS;
 
       var seed = arguments.length > 2 ? arguments[1] : arguments[2];
@@ -506,6 +520,10 @@ var openrosa_xpath_extensions = function(translate) {
       if(rt === XPathResult.STRING_TYPE) {
         if (r.v.length < 1) return '';
         return XPR.string(r.v[0]);
+      }
+      // nodes as seed
+      if(Array.isArray(seed) && seed.length && seed[0].nodeType === 1) {
+        return [r, parseInt(seed[0].textContent)];
       }
       return [r, seed && seed.v];
     },
@@ -582,7 +600,6 @@ var openrosa_xpath_extensions = function(translate) {
   func['date-time'] = func.date;
   func['decimal-date-time'] = func['decimal-date'];
   func['format-date-time'] = func['format-date'];
-  func.today = func.now;
 
   process = {
       toExternalResult: function(r) {
@@ -636,8 +653,12 @@ var openrosa_xpath_extensions = function(translate) {
 
   ret.func = func;
   ret.process = process;
-  ret._now = function() {
-    return new Date();
+  ret._now = function(resetTime) {
+    var t = new Date();
+    if(resetTime) {
+      return new Date(t.getFullYear(), t.getMonth(), t.getDate())
+    }
+    return t;
   };
 
   return ret;
