@@ -45,22 +45,28 @@ function checkMinMaxArgs(args, min, max) {
   if(max != null && args.length > max) throw TOO_MANY_ARGS;
 }
 
+function getNamespaceAtts(result) {
+  var v = [];
+  while((n = result.iterateNext())) {
+    if(n.name.indexOf(':')>0) v.unshift(n);
+  }
+  return v;
+};
+
 function checkNativeFn(name, args) {
-  if(name === 'last') checkMinMaxArgs(args, null, 0);
-  else if(name === 'boolean' || name === 'lang' ||
-     name === 'ceiling' || name === 'name' || name === 'floor') {
+  if(name === 'last') {
+    checkMinMaxArgs(args, null, 0);
+  } else if(/^(boolean|lang|ceiling|name|floor)$/.test(name)) {
     checkMinMaxArgs(args, 1, 1);
-  }
-  else if(name === 'number' || name === 'string' ||
-    name === 'normalize-space' || name === 'string-length') {
+  } else if(/^(number|string|normalize-space|string-length)$/.test(name)) {
     checkMinMaxArgs(args, null, 1);
-  }
-  else if(name === 'substring') checkMinMaxArgs(args, 2, 3);
-  else if(name === 'starts-with' || name === 'contains' ||
-    name === 'substring-after' || name === 'substring-before') {
+  } else if(name === 'substring') {
+    checkMinMaxArgs(args, 2, 3);
+  } else if(/^(starts-with|contains|substring-before|substring-after)$/.test(name)) {
     checkMinMaxArgs(args, 2, 2);
+  } else if(name === 'translate') {
+    checkMinMaxArgs(args, 3, 3);
   }
-  else if(name === 'translate') checkMinMaxArgs(args, 3, 3);
 }
 
 
@@ -216,16 +222,28 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
       return ns.namespace(input, cN);
     }
 
-    if(/^lang\(|local-name|namespace-uri|name\(|child::|parent::|descendant::|descendant-or-self::|ancestor::|ancestor-or-self::sibling|following::|following-sibling::|preceding-sibling::|preceding::|attribute::/.test(input)) {
-      var args = input.substring(
-        input.indexOf('(')+1,
-        input.lastIndexOf(')')
-      ).split(',');
+    if(/^id\(|lang\(|local-name|namespace-uri|name\(|child::|parent::|descendant::|descendant-or-self::|ancestor::|ancestor-or-self::sibling|following::|following-sibling::|preceding-sibling::|preceding::|attribute::/.test(input)) {
+      var args = input.substring(input.indexOf('(')+1, input.lastIndexOf(')')).split(',');
 
       if(args.length > 1) { throw TOO_MANY_ARGS; }
       if(args.length < 1) { throw TOO_FEW_ARGS; }
       if(args[0].length && !isNaN(args[0])) { throw INVALID_ARGS; }
+      if(input === 'lang()') throw TOO_FEW_ARGS; //TODO firefox needs this. clean this with above logic.
       if(input.startsWith('lang(') && cN.nodeType === 2) cN = cN.ownerElement;
+      if(input.startsWith('id(') && input.endsWith('/namespace::*')) {
+        // Latest browsers do not support namespace::*
+        input = input.replace('/namespace::*', '/attribute::*');
+        var nodes = getNamespaceAtts(wrapped(input, cN, 5));
+        return function() {
+          var localIdx = 0;
+          return {
+            resultType: 7,
+            snapshotLength: nodes.length,
+            snapshotItem: function(idx) { return nodes[idx]; },
+            iterateNext: function(idx) { return nodes[localIdx++]; }
+          }
+        }();
+      }
       return wrapped(input, cN);
     }
 
@@ -243,7 +261,7 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
         if(bargs.length > 1) throw TOO_MANY_ARGS;
       }
       if(input === '/') cN = cN.ownerDocument || cN;
-      return wrapped(input, cN, nR, rT, r);
+      return wrapped(input, cN);
     }
 
     if(rT === XPathResult.BOOLEAN_TYPE && input.indexOf('(') < 0 &&

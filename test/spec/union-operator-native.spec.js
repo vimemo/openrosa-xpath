@@ -95,10 +95,11 @@ describe( 'Union operator', () => {
         );
     } );
 
-    xit( 'combines a namespace and attribute', () => {
+    it( 'combines a namespace and attribute', () => {
         const result = g.doc.evaluate( "id('nss40')/namespace::*", g.doc, null, g.win.XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null ); //
 
-        helpers.checkNodeResult( "id('nss40')/namespace::* | id('nss25')/attribute::* | id('nss25')", g.doc, [
+        // Need to check unordered. id('nss25')/attribute::* -- browsers return atts in different order
+        helpers.checkUnorderedNodeResult( "id('nss40')/namespace::* | id('nss25')/attribute::* | id('nss25')", g.doc, [
             g.doc.getElementById( 'nss25' )
         ].concat(
             helpers.filterAttributes( g.doc.getElementById( 'nss25' ).attributes )

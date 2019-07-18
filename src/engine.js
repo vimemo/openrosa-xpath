@@ -68,9 +68,9 @@ module.exports = (function(){
 				'document': {
           evaluate: function(e, contextPath, namespaceResolver, resultType, result) {
             var extensions = openrosaExtensions(settings);
-            var wrappedXpathEvaluator = function(v, node) {
+            var wrappedXpathEvaluator = function(v, node, rt) {
               if(resultType < 7 || v.startsWith('//')) resultType = null;
-              var wrappedResultType = resultType || XPathResult.ANY_TYPE;
+              var wrappedResultType = rt || resultType || XPathResult.ANY_TYPE;
               return evaluator.evaluate(v, node || contextPath, namespaceResolver, wrappedResultType || XPathResult.ANY_TYPE, result);
             };
             var xevaluator = new ExtendedXpathEvaluator(wrappedXpathEvaluator, extensions);

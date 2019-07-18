@@ -6,6 +6,14 @@ const sortedNamespaces = (namespaces) => {
   })
 };
 
+const sortedNodes = (nodes) => {
+  return nodes.sort((a, b) => {
+    if(a.name < b.name) return -1;
+    if(a.name > b.name) return 1;
+    return 0;
+  });
+};
+
 
 const helpers = {
     getNextChildElementNode: function( parentNode ) {
@@ -355,6 +363,24 @@ const helpers = {
         for ( j = 0; j < result.snapshotLength; j++ ) {
             item = result.snapshotItem( j );
             expect( item ).to.deep.equal( expectedResult[ j ] );
+        }
+    },
+
+    checkUnorderedNodeResult: function( expression, contextNode, expectedResult, resolver ) {
+        var result, j, item, res, doc;
+
+        doc = contextNode.ownerDocument || contextNode;
+
+        res = ( !resolver ) ? null : resolver;
+
+        result = doc.evaluate( expression, contextNode, res, 7, null );
+
+        expect( result.snapshotLength ).to.equal( expectedResult.length );
+        expectedResult = sortedNodes(expectedResult);
+        var sortedResult = sortedNodes(this.snapshotToArray(result));
+
+        for ( j = 0; j < sortedResult; j++ ) {
+            expect( sortedResult[j] ).to.deep.equal( expectedResult[ j ] );
         }
     },
 
