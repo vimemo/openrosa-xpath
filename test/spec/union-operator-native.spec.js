@@ -70,8 +70,9 @@ describe( 'Union operator', () => {
         ] );
     } );
 
-    xit( 'combines different attributes on the same element', () => {
-        helpers.checkNodeResult( "id('eee40')/attribute::*[2] | id('eee40')/attribute::*[1]", g.doc, [
+    it( 'combines different attributes on the same element', () => {
+      //Chrome/firefox return different attribute order
+        helpers.checkUnorderedNodeResult( "id('eee40')/attribute::*[2] | id('eee40')/attribute::*[1]", g.doc, [
             helpers.filterAttributes( g.doc.getElementById( 'eee40' ).attributes )[ 0 ],
             helpers.filterAttributes( g.doc.getElementById( 'eee40' ).attributes )[ 1 ]
         ] );

@@ -465,6 +465,7 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
             cur = { t:'num', string:'-' };
           } else {
             if(cur.v !== '') {
+              if(!DIGIT.test(cur.v) && input[i-1] !== ' ') throw INVALID_ARGS;
               peek().tokens.push(cur);
             }
             pushOp(c);

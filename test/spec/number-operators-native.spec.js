@@ -58,7 +58,7 @@ describe( 'number operators', () => {
 
     } );
 
-    xit( '- with string without spacing BEFORE - fails', () => {
+    it( '- with string without spacing BEFORE - fails', () => {
         const test = () => {
             g.doc.evaluate( "asdf- asdf", g.doc, null, g.win.XPathResult.NUMBER_TYPE, null );
         };
