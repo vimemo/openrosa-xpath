@@ -1,4 +1,4 @@
-var shuffle = require('./shuffle');
+var shuffle = require('./utils/shuffle');
 var {isNamespaceExpr, handleNamespaceExpr} = require('./utils/ns');
 var {handleOperation} = require('./utils/operation');
 var settings = require('./settings');
