@@ -4,6 +4,12 @@ var TOO_MANY_ARGS = new Error('too many args');
 var TOO_FEW_ARGS = new Error('too few args');
 var INVALID_ARGS = new Error('invalid args');
 
+var NATIVE_FUNS = /^id\(|lang\(|local-name|namespace-uri|name\(|child::|parent::|descendant::|descendant-or-self::|ancestor::|ancestor-or-self::sibling|following::|following-sibling::|preceding-sibling::|preceding::|attribute::/;
+
+function isNativeFunction(input) {
+  return NATIVE_FUNS.test(input);
+}
+
 function checkMinMaxArgs(args, min, max) {
   if(min != null && args.length < min) throw TOO_FEW_ARGS;
   if(max != null && args.length > max) throw TOO_MANY_ARGS;
@@ -50,5 +56,6 @@ function preprocessNativeArgs(name, args) {
 }
 
 module.exports = {
+  isNativeFunction,
   preprocessNativeArgs
 }

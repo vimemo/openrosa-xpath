@@ -1,4 +1,4 @@
-var {snapsResult} = require('./result');
+var {toSnapshotResult} = require('./result');
 
 function namespace(input, cN) {
   var nsId = input.substring(11);
@@ -18,7 +18,7 @@ function namespace(input, cN) {
       }
     }
   }
-  return snapsResult(xnamespaces);
+  return toSnapshotResult(xnamespaces);
 }
 
 function namespaceNode(cN) {
@@ -58,11 +58,7 @@ function namespaceNode(cN) {
     if(n1.localName > n2.localName){ return 1;}
     return 0;
   });
-  return {
-    singleNodeValue: namespaces.length ? items[0] : null,
-    snapshotLength: namespaces.length,
-    snapshotItem: function(idx) { return namespaces[idx]; }
-  };
+  return toSnapshotResult(namespaces, 7, items[0]);
 }
 
 function isNamespaceExpr(input) {

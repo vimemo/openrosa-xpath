@@ -22,12 +22,12 @@ function nodesResult(nodes, rt) {
   }();
 }
 
-function snapsResult(nodes, rt) {
+function toSnapshotResult(nodes, rt, singleItem) {
   return function() {
     var idx = 0;
     return {
       resultType: rt,
-      singleNodeValue: nodes.length ? nodes[0] : null,
+      singleNodeValue: nodes.length ? singleItem || nodes[0] : null,
       snapshotLength: nodes.length,
       snapshotItem: function(i){return nodes[i];},
       iterateNext: function(){return nodes.length > idx ? nodes[idx++] : null;}
@@ -38,5 +38,5 @@ function snapsResult(nodes, rt) {
 module.exports = {
   getNamespaceAtts,
   toNodes,
-  snapsResult
+  toSnapshotResult
 };

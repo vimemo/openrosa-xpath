@@ -1,11 +1,11 @@
+var settings = require('./settings');
 var shuffle = require('./utils/shuffle');
 var {isNamespaceExpr, handleNamespaceExpr} = require('./utils/ns');
 var {handleOperation} = require('./utils/operation');
-var settings = require('./settings');
-var {preprocessNativeArgs} = require('./utils/native');
+var {isNativeFunction, preprocessNativeArgs} = require('./utils/native');
 var {DATE_STRING, dateToDays} = require('./utils/date');
-var {toNodes, snapsResult, getNamespaceAtts} = require('./utils/result');
-var {preprocessInput} = require('./utils/input');
+var {toNodes, toSnapshotResult, getNamespaceAtts} = require('./utils/result');
+var {inputArgs, preprocessInput} = require('./utils/input');
 
 /*
  * From http://www.w3.org/TR/xpath/#section-Expressions XPath infix
@@ -65,7 +65,7 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
 
       if(rt > 3) {
         r = shuffle(r[0], r[1]);
-        return snapsResult(r, XPathResult.UNORDERED_SNAPSHOT_TYPE);
+        return toSnapshotResult(r, XPathResult.UNORDERED_SNAPSHOT_TYPE);
       }
 
       if(!r.t && Array.isArray(r)) {
@@ -125,28 +125,11 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
     input = preprocessInput(input, rT);
     if(isNamespaceExpr(input)) return handleNamespaceExpr(input, cN);
 
-    if(/^id\(|lang\(|local-name|namespace-uri|name\(|child::|parent::|descendant::|descendant-or-self::|ancestor::|ancestor-or-self::sibling|following::|following-sibling::|preceding-sibling::|preceding::|attribute::/.test(input)) {
-      var args = input.substring(input.indexOf('(')+1, input.lastIndexOf(')')).split(',');
-
-      if(args.length > 1) { throw TOO_MANY_ARGS; }
-      if(args.length < 1) { throw TOO_FEW_ARGS; }
-      if(args[0].length && !isNaN(args[0])) { throw INVALID_ARGS; }
-      if(input === 'lang()') throw TOO_FEW_ARGS; //TODO firefox needs this. clean this with above logic.
-      if(input.startsWith('lang(') && cN.nodeType === 2) cN = cN.ownerElement;
-      if(input.startsWith('id(') && input.endsWith('/namespace::*')) {
-        // Latest browsers do not support namespace::*
-        input = input.replace('/namespace::*', '/attribute::*');
-        var nodes = getNamespaceAtts(wrapped(input, cN, 5));
-        return function() {
-          var localIdx = 0;
-          return {
-            resultType: 7,
-            snapshotLength: nodes.length,
-            snapshotItem: function(idx) { return nodes[idx]; },
-            iterateNext: function(idx) { return nodes[localIdx++]; }
-          }
-        }();
-      }
+    if(isNativeFunction(input)) {
+      var args = inputArgs(input);
+      if(args.length && args[0].length && !isNaN(args[0])) { throw INVALID_ARGS; } // TODO ????
+      if(input === 'lang()') throw TOO_FEW_ARGS;
+      if(/^lang\(/.test(input) && cN.nodeType === 2) cN = cN.ownerElement;
       return wrapped(input, cN);
     }
 

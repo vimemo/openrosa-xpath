@@ -4,6 +4,13 @@ function isOperation(input, rT) {
     && !input.startsWith('/'); // not a path expression
 }
 
+var ARGS_REGEX = /\(\s*([^)]*)\)$/;
+
+function inputArgs(input) {
+  var m = input.match(ARGS_REGEX);
+  return m ? m[1].split(',') : [];
+}
+
 function preprocessInput(input, rT) {
   if(isOperation(input, rT)) {
     input = input.replace('\n', ''); //replaces new lines for expressions without functions
@@ -22,5 +29,6 @@ function preprocessInput(input, rT) {
 }
 
 module.exports = {
+  inputArgs,
   preprocessInput
 }
