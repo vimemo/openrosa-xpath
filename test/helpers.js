@@ -1,17 +1,17 @@
 const sortedNamespaces = (namespaces) => {
-  return namespaces.sort((ns1, ns2) => {
-    if(ns1[0] > ns2[0]) {return 1;}
-    if(ns1[0] < ns2[0]) {return -1;}
-    return 0;
-  })
+    return namespaces.sort((ns1, ns2) => {
+        if(ns1[0] > ns2[0]) {return 1;}
+        if(ns1[0] < ns2[0]) {return -1;}
+        return 0;
+    });
 };
 
 const sortedNodes = (nodes) => {
-  return nodes.sort((a, b) => {
-    if(a.name < b.name) return -1;
-    if(a.name > b.name) return 1;
-    return 0;
-  });
+    return nodes.sort((a, b) => {
+        if(a.name < b.name) return -1;
+        if(a.name > b.name) return 1;
+        return 0;
+    });
 };
 
 
@@ -343,9 +343,9 @@ const helpers = {
         for ( j = 0; j < result.snapshotLength; j++ ) {
             item = result.snapshotItem( j );
             expect( item.nodeName ).to.equal( '#namespace' );
-            var result = expectedMap[ item.localName ];
-            expect( item.localName ).to.equal( result[ 0 ] );
-            expect( item.namespaceURI ).to.equal( result[ 1 ] );
+            var xresult = expectedMap[ item.localName ];
+            expect( item.localName ).to.equal( xresult[ 0 ] );
+            expect( item.namespaceURI ).to.equal( xresult[ 1 ] );
         }
     },
 
@@ -367,7 +367,7 @@ const helpers = {
     },
 
     checkUnorderedNodeResult: function( expression, contextNode, expectedResult, resolver ) {
-        var result, j, item, res, doc;
+        var result, j, res, doc;
 
         doc = contextNode.ownerDocument || contextNode;
 

@@ -117,12 +117,7 @@ var openrosa_xpath_extensions = function(settings) {
       TOO_FEW_ARGS = new Error('too few args'),
       MILLIS_PER_DAY = 1000 * 60 * 60 * 24,
       RAW_NUMBER = /^(-?[0-9]+)(\.[0-9]+)?$/,
-      // DATE_STRING = /^\d\d\d\d-\d{1,2}-\d{1,2}(?:T\d\d:\d\d:\d\d(?:Z|[+-]\d\d:\d\d))?$/,
       DATE_STRING = /^\d\d\d\d-\d{1,2}-\d{1,2}(?:T\d\d:\d\d:\d\d\.?\d?\d?(?:Z|[+-]\d\d:\d\d)|.*)?$/,
-
-                  //  ^(?:[1-9]\d{3}-(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|1\d|2[0-8])|(?:0[13-9]|1[0-2])-(?:29|30)|(?:0[13578]|1[02])-31)|(?:[1-9]\d(?:0[48]|[2468][048]|[13579][26])|(?:[2468][048]|[13579][26])00)-02-29)T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:Z|[+-][01]\d:[0-5]\d)$
-
-      // DATE_STRING = /^\d\d\d\d-\d{1,2}-\d{1,2}(?:T\d\d:\d\d:\d\d.\d\d(?:Z|[+-]\d\d:\d\d))?$/,
       XPR = {
         boolean: function(val) { return { t:'bool', v:val }; },
         number: function(val) { return { t:'num', v:val }; },
@@ -664,8 +659,4 @@ var openrosa_xpath_extensions = function(settings) {
   return ret;
 };
 
-// if(typeof define === 'function') {
-//   define(function() { return openrosa_xpath_extensions; });
-// } else if(typeof module === 'object' && typeof module.exports === 'object') {
-  module.exports = openrosa_xpath_extensions;
-// }
+module.exports = openrosa_xpath_extensions;

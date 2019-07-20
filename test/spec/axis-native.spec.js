@@ -172,7 +172,7 @@ describe( 'axes', () => {
                 // Browsers do return this type of nodes. Is this ok?
                 // if ( g.doc.childNodes.item( i ).nodeType == 1 ||
                 //     g.doc.childNodes.item( i ).nodeType == 8 ) {
-                    expectedResult.push( g.doc.childNodes.item( i ) );
+                expectedResult.push( g.doc.childNodes.item( i ) );
                 // }
             }
 

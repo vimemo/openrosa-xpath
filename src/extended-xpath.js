@@ -1,7 +1,11 @@
 var shuffle = require('./shuffle');
-var ns = require('./ns-extensions');
-var processOperation = require('./process-operation');
+var {isNamespaceExpr, handleNamespaceExpr} = require('./utils/ns');
+var {handleOperation} = require('./utils/operation');
 var settings = require('./settings');
+var {preprocessNativeArgs} = require('./utils/native');
+var {DATE_STRING, dateToDays} = require('./utils/date');
+var {toNodes, snapsResult, getNamespaceAtts} = require('./utils/result');
+var {preprocessInput} = require('./utils/input');
 
 /*
  * From http://www.w3.org/TR/xpath/#section-Expressions XPath infix
@@ -17,57 +21,10 @@ var OP_PRECEDENCE = [
 ];
 
 var DIGIT = /[0-9]/;
-// TODO fix duplicate
-var DATE_STRING = /^\d\d\d\d-\d{1,2}-\d{1,2}(?:T\d\d:\d\d:\d\d\.?\d?\d?(?:Z|[+-]\d\d:\d\d)|.*)?$/;
 var FUNCTION_NAME = /^[a-z]/;
 var NUMERIC_COMPARATOR = /(>|<)/;
 var BOOLEAN_COMPARATOR = /(=)/;
 var COMPARATOR = /(=|<|>)/;
-
-var TOO_MANY_ARGS = new Error('too many args');
-var TOO_FEW_ARGS = new Error('too few args');
-var INVALID_ARGS = new Error('invalid args');
-
-function dateToDays(d) {
-  var temp = null;
-  if(d.indexOf('T') > 0) {
-    temp = new Date(d);
-  } else {
-    temp = d.split('-');
-    temp = new Date(temp[0], temp[1]-1, temp[2]);
-  }
-  var r = (temp.getTime()) / (1000 * 60 * 60 * 24);
-  return Math.round(r*100000)/100000;
-}
-
-function checkMinMaxArgs(args, min, max) {
-  if(min != null && args.length < min) throw TOO_FEW_ARGS;
-  if(max != null && args.length > max) throw TOO_MANY_ARGS;
-}
-
-function getNamespaceAtts(result) {
-  var v = [];
-  while((n = result.iterateNext())) {
-    if(n.name.indexOf(':')>0) v.unshift(n);
-  }
-  return v;
-};
-
-function checkNativeFn(name, args) {
-  if(name === 'last') {
-    checkMinMaxArgs(args, null, 0);
-  } else if(/^(boolean|lang|ceiling|name|floor)$/.test(name)) {
-    checkMinMaxArgs(args, 1, 1);
-  } else if(/^(number|string|normalize-space|string-length)$/.test(name)) {
-    checkMinMaxArgs(args, null, 1);
-  } else if(name === 'substring') {
-    checkMinMaxArgs(args, 2, 3);
-  } else if(/^(starts-with|contains|substring-before|substring-after)$/.test(name)) {
-    checkMinMaxArgs(args, 2, 2);
-  } else if(name === 'translate') {
-    checkMinMaxArgs(args, 3, 3);
-  }
-}
 
 
 // TODO remove all the checks for cur.t==='?' - what else woudl it be?
@@ -108,10 +65,7 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
 
       if(rt > 3) {
         r = shuffle(r[0], r[1]);
-        return {
-          snapshotLength: r.length,
-          snapshotItem: function(idx) { return r[idx]; }
-        };
+        return snapsResult(r, XPathResult.UNORDERED_SNAPSHOT_TYPE);
       }
 
       if(!r.t && Array.isArray(r)) {
@@ -125,43 +79,12 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
 
       return { resultType:XPathResult.STRING_TYPE, stringValue: r.v===null ? '' : r.v.toString() };
     },
-    toNodes = function(r) {
-      var n, v = [];
-      while((n = r.iterateNext())) v.push(n);
-      return v;
-    },
     callFn = function(name, args, rt) {
       if(extendedFuncs.hasOwnProperty(name)) {
-        // TODO can we pass rt all the time
-        if(rt && (name.startsWith('date') || name === 'now' ||
-          name === 'today' || name === 'randomize')) {
-          args.push(rt);
-        }
+        if(rt && (/^(date|now$|today$|randomize$)/.test(name))) args.push(rt);
         return callExtended(name, args);
       }
-      //TODO structure this better depending on how many more
-      // native functions need to be patched
-      if(name === 'number' && args.length) {
-        if(args[0].t === 'arr') {
-          args = [{t: 'num', v: args[0].v[0]}];
-        } else if(args[0].t === 'str' && DATE_STRING.test(args[0].v)) {
-          args = [{t: 'num', v: dateToDays(args[0].v)}];
-        } else if(args[0].t === 'num' &&
-          args[0].v.toString().indexOf('e-') > 0) {
-          args = [{t: 'num', v: 0}];
-        }
-      }
-      if(name === 'name' && args.length < 2) throw TOO_FEW_ARGS;
-      if(name === 'namespace-uri') {
-        if(args.length > 1) throw TOO_MANY_ARGS;
-        if(args.length === 0) throw TOO_FEW_ARGS;
-        if(args.length === 1 && !isNaN(args[0].v)) throw INVALID_ARGS;
-      }
-      if(name === 'local-name') {
-        if(args.length > 1) throw TOO_MANY_ARGS;
-        if(args.length === 1 && !isNaN(args[0].v)) throw INVALID_ARGS;
-      }
-      return callNative(name, args);
+      return callNative(name, preprocessNativeArgs(name, args));
     },
     callExtended = function(name, args) {
       var argVals = [], res, i;
@@ -182,7 +105,6 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
         if(arg.t !== 'num' && arg.t !== 'bool') argString += quote;
         if(i < args.length - 1) argString += ', ';
       }
-      checkNativeFn(name, args);
       return toInternalResult(wrapped(name + '(' + argString + ')'));
     },
     typefor = function(val) {
@@ -200,27 +122,8 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
    */
   this.evaluate = function(input, cN, nR, rT, r) {
 
-    if(rT === XPathResult.NUMBER_TYPE && input.indexOf('(') < 0 && !input.startsWith('/')) {
-      input = input.replace('\n', ''); //replaces new lines of expressions without functions
-      if(input.indexOf('mod')>0) { // to support 1mod1 or any weirdness
-        input = input.replace('mod', ' mod ');
-      }
-      if(input.indexOf('div')>0) { // to support 1div1 or any weirdness
-        input = input.replace('div', ' div ');
-      }
-    }
-
-    if(input === 'string(namespace::node())') {
-      input = input.replace('namespace::node()', 'namespace-uri(/*)');
-    }
-
-    if(/^(namespace::node\(\)|namespace::\*)$/.test(input)) {
-      return ns.namespaceNode(cN);
-    }
-
-    if(/^namespace::/.test(input)) {
-      return ns.namespace(input, cN);
-    }
+    input = preprocessInput(input, rT);
+    if(isNamespaceExpr(input)) return handleNamespaceExpr(input, cN);
 
     if(/^id\(|lang\(|local-name|namespace-uri|name\(|child::|parent::|descendant::|descendant-or-self::|ancestor::|ancestor-or-self::sibling|following::|following-sibling::|preceding-sibling::|preceding::|attribute::/.test(input)) {
       var args = input.substring(input.indexOf('(')+1, input.lastIndexOf(')')).split(',');
@@ -290,7 +193,7 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
 
           if(typeof res !== 'undefined' && res !== null) return res;
         }
-        return processOperation(lhs, op, rhs, settings);
+        return handleOperation(lhs, op, rhs, settings);
       },
       evalOpAt = function(tokens, opIndex) {
         var res = evalOp(
@@ -546,36 +449,4 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
   };
 };
 
-var XPathException = function(code, message) {
-  var err;
-  this.code = code;
-  switch(this.code) {
-    case XPathException.INVALID_EXPRESSION_ERR:
-      this.name = 'INVALID_EXPRESSION_ERR';
-      break;
-    case XPathException.TYPE_ERR:
-      this.name = 'TYPE_ERR';
-      break;
-    default:
-      err = new Error('Unsupported XPathException code: ' + this.code);
-      err.name = 'XPathExceptionInternalError';
-      throw err;
-  }
-  this.message = (message || '');
-};
-
-XPathException.prototype.toString = function() {
-  return 'XPathException: "' + this.message + '"' +
-    ', code: "' + this.code + '"' +
-    ', name: "' + this.name + '"'
-  ;
-};
-
-XPathException.INVALID_EXPRESSION_ERR = 51;
-XPathException.TYPE_ERR = 52;
-
-// if(typeof define === 'function') {
-//   define(function() { return ExtendedXpathEvaluator; });
-// } else if(typeof module === 'object' && typeof module.exports === 'object') {
-  module.exports = ExtendedXpathEvaluator;
-// }
+module.exports = ExtendedXpathEvaluator;

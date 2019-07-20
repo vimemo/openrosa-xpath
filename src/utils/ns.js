@@ -1,3 +1,5 @@
+var {snapsResult} = require('./result');
+
 function namespace(input, cN) {
   var nsId = input.substring(11);
   var xnamespaces = [];
@@ -16,12 +18,8 @@ function namespace(input, cN) {
       }
     }
   }
-  return {
-    singleNodeValue: xnamespaces.length ? xitems[0] : null,
-    snapshotLength: xnamespaces.length,
-    snapshotItem: function(idx) { return xnamespaces[idx]; }
-  };
-};
+  return snapsResult(xnamespaces);
+}
 
 function namespaceNode(cN) {
   var namespaces = [];
@@ -65,9 +63,24 @@ function namespaceNode(cN) {
     snapshotLength: namespaces.length,
     snapshotItem: function(idx) { return namespaces[idx]; }
   };
-};
+}
+
+function isNamespaceExpr(input) {
+  return /^(namespace::node\(\)|namespace::\*)$/.test(input)
+    || /^namespace::/.test(input);
+}
+
+function handleNamespaceExpr(input, cN) {
+  if(/^(namespace::node\(\)|namespace::\*)$/.test(input)) {
+    return namespaceNode(cN);
+  }
+
+  if(/^namespace::/.test(input)) {
+    return namespace(input, cN);
+  }
+}
 
 module.exports = {
-  namespaceNode: namespaceNode,
-  namespace: namespace
+  isNamespaceExpr,
+  handleNamespaceExpr
 };

@@ -1,3 +1,5 @@
+var {dateToDays} = require('./date');
+
 function isNumber(value) {
   if(typeof value === 'string') {
     var nbr = value.replace(/["']/g, "");
@@ -7,19 +9,7 @@ function isNumber(value) {
   return typeof value === 'number';
 }
 
-function dateToDays(d) {
-  var temp = null;
-  if(d.indexOf('T') > 0) {
-    temp = new Date(d);
-  } else {
-    temp = d.split('-');
-    temp = new Date(temp[0], temp[1]-1, temp[2]);
-  }
-  return (temp.getTime()) / (1000 * 60 * 60 * 24);
-}
-
-
-function processOperation(lhs, op, rhs, settings) {
+function handleOperation(lhs, op, rhs, settings) {
   //Removes quotes for numbers
   if(op.v === '+' && isNumber(lhs.v) && isNumber(rhs.v)) {
     lhs.v = Number(lhs.v);
@@ -29,12 +19,12 @@ function processOperation(lhs, op, rhs, settings) {
   //Comparing node expressions with numbers/strings/etc
   if(lhs.t === 'arr' && lhs.v.length === 1 && rhs.t === 'num') {
     if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(lhs.v[0])) {
-      lhs = {t: 'num', v: dateToDays(lhs.v[0])};
+      lhs = {t: 'num', v: dateToDays(lhs.v[0], false)};
     }
   }
   if(rhs.t === 'arr' && rhs.v.length === 1 && lhs.t === 'num') {
     if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(rhs.v[0])) {
-      rhs = {t: 'num', v: dateToDays(rhs.v[0])};
+      rhs = {t: 'num', v: dateToDays(rhs.v[0], false)};
     }
   }
 
@@ -51,11 +41,11 @@ function processOperation(lhs, op, rhs, settings) {
   }
 
   if(lhs.t === 'str' && /^\d\d\d\d-\d{1,2}-\d{1,2}/.test(lhs.v)) {
-    lhs = {t: 'num', v: dateToDays(lhs.v)};
+    lhs = {t: 'num', v: dateToDays(lhs.v, false)};
   }
 
   if(rhs.t === 'str' && /^\d\d\d\d-\d{1,2}-\d{1,2}/.test(rhs.v)) {
-    rhs = {t: 'num', v: dateToDays(rhs.v)};
+    rhs = {t: 'num', v: dateToDays(rhs.v, false)};
   }
 
   if(op.v === '-' && (isNaN(lhs.v) || isNaN(rhs.v))) {
@@ -248,4 +238,6 @@ function processOperation(lhs, op, rhs, settings) {
   }
 }
 
-module.exports = processOperation;
+module.exports = {
+  handleOperation
+};
