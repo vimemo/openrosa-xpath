@@ -4,7 +4,7 @@ var TOO_MANY_ARGS = new Error('too many args');
 var TOO_FEW_ARGS = new Error('too few args');
 var INVALID_ARGS = new Error('invalid args');
 
-var NATIVE_FUNS = /^id\(|lang\(|local-name|namespace-uri|name\(|child::|parent::|descendant::|descendant-or-self::|ancestor::|ancestor-or-self::sibling|following::|following-sibling::|preceding-sibling::|preceding::|attribute::/;
+var NATIVE_FUNS = /^id\(|^\(|lang\(|local-name|namespace-uri|last\(|name\(|child::|parent::|descendant::|descendant-or-self::|ancestor::|ancestor-or-self::sibling|following::|following-sibling::|preceding-sibling::|preceding::|attribute::/;
 
 function isNativeFunction(input) {
   return NATIVE_FUNS.test(input);
@@ -50,6 +50,17 @@ function preprocessNativeArgs(name, args) {
   if(name === 'local-name') {
     if(args.length > 1) throw TOO_MANY_ARGS;
     if(args.length === 1 && !isNaN(args[0].v)) throw INVALID_ARGS;
+  }
+
+  if(name === 'substring' && args.length > 2 && args[1].v === Number.NEGATIVE_INFINITY && args[2].v === Number.POSITIVE_INFINITY) {
+    args[0].v = '';
+  }
+
+  if(name === 'substring' && args.length > 1 && args[1].v < 0) {
+    args[1].v = 0;
+  }
+  if(name === 'substring' && args.length > 2 && args[2].v === Number.POSITIVE_INFINITY) {
+    args[2].v = args[0].v.length + 1;
   }
   checkNativeFn(name, args);
   return args;

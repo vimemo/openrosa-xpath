@@ -91,8 +91,8 @@ describe( 'number operators', () => {
             [ "'1'-'1'", 0 ],
             [ ".55  - 0.56", -0.010000000000000009 ],
             [ "1.0-1.0", 0 ],
-            //TODO vimago [ "true()  \n\r\t -true()", 0 ],
-            //TODO vimago [ "false()-1", -1 ],
+            [ "true()  \n\r\t -true()", 0 ],
+            [ "false()-1", -1 ],
             [ "(1 div 0) - 1", Number.POSITIVE_INFINITY ],
             [ "(-1 div 0) - 1", Number.NEGATIVE_INFINITY ]
         ].forEach( t => {
@@ -270,7 +270,7 @@ describe( 'number operators', () => {
             [ "2*3+1", 7 ],
             [ "1-10 mod 3 div 3", 0.6666666666666667 ],
             [ "4-3*4+5-1", -4 ],
-            //TODO vimago [ "(4-3)*4+5-1", 8 ],
+            [ "(4-3)*4+5-1", 8 ],
             [ "8 div 2 + 4", 8 ]
         ].forEach( t => {
             const result = g.doc.evaluate( t[ 0 ], g.doc, null, g.win.XPathResult.NUMBER_TYPE, null );

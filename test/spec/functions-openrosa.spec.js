@@ -366,8 +366,11 @@ describe( 'Custom "OpenRosa" functions', () => {
     } );
 
     it( 'uuid()', () => {
-        const result = g.doc.evaluate( 'uuid()', g.doc, null, g.win.XPathResult.STRING_TYPE );
+        let result = g.doc.evaluate( 'uuid()', g.doc, null, g.win.XPathResult.STRING_TYPE );
         expect( result.stringValue ).to.have.length( 36 );
+
+        result = g.doc.evaluate( 'uuid(6)', g.doc, null, g.win.XPathResult.STRING_TYPE );
+        expect( result.stringValue ).to.have.length( 6 );
     } );
 
     it( 'int()', () => {
@@ -1021,7 +1024,7 @@ describe( 'Custom "OpenRosa" functions', () => {
             g.win.XPathJS.customXPathFunction.remove( 'comment-status' );
         } );
 
-        xit( 'can be added', () => {
+        it( 'can be added', () => {
             const obj = {
                 status: 'good'
             };
@@ -1035,23 +1038,17 @@ describe( 'Custom "OpenRosa" functions', () => {
             expect( test1 ).to.throw( /Failed to execute/ );
 
             // Add custom function
-            g.win.XPathJS.customXPathFunction.add( 'comment-status', {
-                fn( a ) {
-                    const curValue = a.toString();
-                    let status = '';
+            g.win.XPathJS.customXPathFunction.add( 'comment-status', function( a ) {
+              if(arguments.length !== 1) throw new g.win.Error('Invalid args');
+              const curValue = a.v[0]; // {t: 'arr', v: [{'status': 'good'}]}
+              let status = '';
+              try {
+                  status = JSON.parse( curValue ).status;
+              } catch ( e ) {
+                  console.error( 'Could not parse JSON from', curValue );
+              }
 
-                    try {
-                        status = JSON.parse( curValue ).status;
-                    } catch ( e ) {
-                        console.error( 'Could not parse JSON from', curValue );
-                    }
-
-                    return new g.win.XPathJS.customXPathFunction.type.StringType( status );
-                },
-                args: [ {
-                    t: 'string'
-                } ],
-                ret: 'string'
+              return new g.win.XPathJS.customXPathFunction.type.StringType( status );
             } );
 
             // Check functioning:
@@ -1066,6 +1063,32 @@ describe( 'Custom "OpenRosa" functions', () => {
 
         } );
 
+    } );
+
+    describe('digest', () => {
+      it( 'digest', () => {
+        [
+          ["digest('abc', 'SHA-1', 'hex')", 'a9993e364706816aba3e25717850c26c9cd0d89d'],
+          ["digest('abc', 'SHA-256', 'hex')", 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'],
+          ["digest('abc', 'SHA-256')", 'ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0='],
+          ["digest('abc', 'SHA-256', 'base64')", 'ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=']
+        ].forEach( async ([expr, expected]) => {
+          var result = g.doc.evaluate(expr, g.doc, null, g.win.XPathResult.STRING_TYPE, null);
+          expect(await (result.stringValue)).to.equal(expected);
+        });
+
+        const invalidAlgoTest = () => {
+          g.doc.evaluate("digest('abc', 'XYZ', 'hex')", g.doc, null, g.win.XPathResult.STRING_TYPE, null);
+        }
+
+        expect(invalidAlgoTest).to.throw();
+
+        const invalidEncodingTest = () => {
+          g.doc.evaluate("digest('abc', 'SHA-1', 'x')", g.doc, null, g.win.XPathResult.STRING_TYPE, null);
+        }
+
+        expect(invalidEncodingTest).to.throw();
+      } );
     } );
 
 } );

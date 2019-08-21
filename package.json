@@ -1,8 +1,8 @@
 {
-  "name": "openrosa-xpath",
+  "name": "odk-xpath",
   "description": "JS implementation of XPath extended with OpenRosa functions and the date datatype",
   "homepage": "https://github.com/medic/openrosa-xpath-evaluator",
-  "version": "2.0.0-beta.0",
+  "version": "0.0.1-beta.4",
   "repository": {
     "type": "git",
     "url": "https://github.com/vimemo/openrosa-xpath"

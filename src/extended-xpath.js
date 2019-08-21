@@ -24,6 +24,7 @@ var DIGIT = /[0-9]/;
 var FUNCTION_NAME = /^[a-z]/;
 var NUMERIC_COMPARATOR = /(>|<)/;
 var BOOLEAN_COMPARATOR = /(=)/;
+var BOOLEAN_FN_COMPARATOR = /(true\(\)|false\(\))/;
 var COMPARATOR = /(=|<|>)/;
 
 
@@ -47,6 +48,11 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
       if(extendedProcessors.toExternalResult) {
         var res = extendedProcessors.toExternalResult(r);
         if(res) return res;
+      }
+
+      // returns promise
+      if(r.v && typeof r.v.then === 'function' && rt === XPathResult.STRING_TYPE) {
+        return {resultType: XPathResult.STRING_TYPE, stringValue: r.v}
       }
 
       if((r.t === 'arr' && rt === XPathResult.NUMBER_TYPE && DATE_STRING.test(r.v[0])) ||
@@ -81,8 +87,29 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
     },
     callFn = function(name, args, rt) {
       if(extendedFuncs.hasOwnProperty(name)) {
+        // if(rt && (/^(date|true|false|now$|today$|randomize$)/.test(name))) args.push(rt);
         if(rt && (/^(date|now$|today$|randomize$)/.test(name))) args.push(rt);
+        if(/^(true$|false$)/.test(name)) args.push(rt || XPathResult.BOOLEAN_TYPE);
         return callExtended(name, args);
+      }
+
+      if(name === 'normalize-space' && args.length) {
+        var res = args[0].v;
+        res = res.replace(/\f/g, '\\f');
+        res = res.replace(/\r\v/g, '\v');
+        res = res.replace(/\v/g, '\\v');
+        res = res.replace(/\s+/g, ' ');
+        res = res.replace(/^\s+|\s+$/g, '');
+        res = res.replace(/\\v/g, '\v');
+        res = res.replace(/\\f/g, '\f');
+        return {t: 'str', v: res};
+      }
+
+      if(name === 'string' && args.length > 0 && (
+        args[0].v === Number.POSITIVE_INFINITY ||
+        args[0].v === Number.NEGATIVE_INFINITY ||
+        args[0].v !== args[0].v )) {//NaN
+        return { t:'str', v: args[0].v };
       }
       return callNative(name, preprocessNativeArgs(name, args));
     },
@@ -130,7 +157,18 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
       if(args.length && args[0].length && !isNaN(args[0])) { throw INVALID_ARGS; } // TODO ????
       if(input === 'lang()') throw TOO_FEW_ARGS;
       if(/^lang\(/.test(input) && cN.nodeType === 2) cN = cN.ownerElement;
-      return wrapped(input, cN);
+      const res = wrapped(input, cN);
+      if(rT === XPathResult.NUMBER_TYPE &&
+        (res.resultType === XPathResult.UNORDERED_NODE_ITERATOR_TYPE ||
+         res.resultType === XPathResult.UNORDERED_NODE_ITERATOR_TYPE)) {
+        var val = parseInt(res.iterateNext().textContent);
+        return {
+          resultType: XPathResult.NUMBER_TYPE,
+          numberValue: val,
+          stringValue: val
+        };
+      }
+      return res;
     }
 
     if((rT > 3 && !input.startsWith('randomize')) ||
@@ -157,6 +195,10 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
       input = input.replace(/"(\d)"/g, '$1');
       input = input.replace(/'(\d)'/g, '$1');
       input = "boolean-from-string("+input+")";
+    }
+
+    if(rT === XPathResult.NUMBER_TYPE && input.indexOf('string-length') < 0) {
+      input = input.replace(/(\n|\r|\t)/g, '');
     }
 
     var i, cur, stack = [{ t:'root', tokens:[] }],
@@ -261,6 +303,8 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
             (c === '-' && input[i-1] === 'e')) {
           cur.string += c;
           continue;
+        } else if(c === ' ' && cur.string === '-') {
+          continue;
         } else if(c === '.' && !cur.decimal) {
           cur.decimal = 1;
           cur.string += c;
@@ -306,13 +350,16 @@ var ExtendedXpathEvaluator = function(wrapped, extensions) {
           if(cur.v) {
             var expectedReturnType = rT;
             if(rT === XPathResult.BOOLEAN_TYPE) {
-              if(NUMERIC_COMPARATOR.test(input)) expectedReturnType = XPathResult.NUMBER_TYPE;
+              if(NUMERIC_COMPARATOR.test(input) && !BOOLEAN_FN_COMPARATOR.test(input)) expectedReturnType = XPathResult.NUMBER_TYPE;
               if(BOOLEAN_COMPARATOR.test(input)) expectedReturnType = XPathResult.BOOLEAN_TYPE;
               if(COMPARATOR.test(input) && cur.t === 'fn' && /^(date|date-time)$/.test(cur.v)) {
                 expectedReturnType = XPathResult.STRING_TYPE;
               }
             }
-            peek().tokens.push(callFn(cur.v, cur.tokens, expectedReturnType));
+            var res = callFn(cur.v, cur.tokens, expectedReturnType)
+            if(cur.v === 'node' && res.t === 'arr' && res.v.length > 0)
+              res.v = [res.v[0]]; // only interested in first element
+            peek().tokens.push(res);
           } else {
             if(cur.tokens.length !== 1) err();
             peek().tokens.push(cur.tokens[0]);

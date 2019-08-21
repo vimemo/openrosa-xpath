@@ -111,6 +111,61 @@ function distance(geopoints) {
   return Math.abs(Math.round(distance * PRECISION)) / PRECISION;
 }
 
+
+var ALGOS = {
+  'md5': 'md5',
+  'sha-1': 'sha1',
+  'sha-256': 'sha256',
+  'sha-384': 'sha384',
+  'sha-512': 'sha512',
+}
+
+function _digest(message, algo, encoding) {
+  message = message.v;
+  algo = algo && algo.v && algo.v.toLowerCase();
+  encoding = (encoding && encoding.v && encoding.v.toLowerCase()) || 'base64';
+
+  if(!algo || !/^(sha-1|sha-256|sha-384|sha-512)$/.test(algo)) {
+    throw new Error('Invalid algo.');
+  }
+
+  if(!/^(base64|hex)$/.test(encoding)) {
+    throw new Error('Invalid encoding.');
+  }
+
+  var msgUint8 = new TextEncoder().encode(message);
+  return crypto.subtle.digest(algo, msgUint8).then(function(hashBuffer) {
+    if(!encoding || encoding === 'base64') {
+      var binary = '';
+      var bytes = new Uint8Array(hashBuffer);
+      var len = bytes.byteLength;
+      for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+      }
+      return Promise.resolve(window.btoa(binary));
+    } else if(encoding === 'hex') {
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return Promise.resolve(hashArray.map(function(b) {
+        return b.toString(16).padStart(2, '0');
+      }).join(''));
+    }
+  });
+}
+
+function _random13chars() {
+  return Math.random().toString(16).substring(2)
+}
+
+function _randomToken(length) {
+	var loops = Math.ceil(length / 13)
+	return new Array(loops)
+    .fill(_random13chars)
+    .reduce(function(string, func) {
+		    return string + func()
+	   }, '').substring(0, length);
+}
+
+
 var openrosa_xpath_extensions = function(settings) {
   var
       TOO_MANY_ARGS = new Error('too many args'),
@@ -119,6 +174,7 @@ var openrosa_xpath_extensions = function(settings) {
       RAW_NUMBER = /^(-?[0-9]+)(\.[0-9]+)?$/,
       DATE_STRING = /^\d\d\d\d-\d{1,2}-\d{1,2}(?:T\d\d:\d\d:\d\d\.?\d?\d?(?:Z|[+-]\d\d:\d\d)|.*)?$/,
       XPR = {
+        nodes: function(val) { return { t:'nodes', v:val }; },
         boolean: function(val) { return { t:'bool', v:val }; },
         number: function(val) { return { t:'num', v:val }; },
         string: function(val) { return { t:'str', v:val }; },
@@ -377,14 +433,18 @@ var openrosa_xpath_extensions = function(settings) {
       }
       return XPR.number(dec);
     },
+    digest: function(msg, algo, encoding) {
+      return XPR.string(_digest(msg, algo, encoding));
+    },
     distance: function(r) {
       if(arguments.length === 0) throw TOO_FEW_ARGS;
       return areaOrDistance(XPR.number, distance, r);
     },
     exp: function(r) { return XPR.number(Math.exp(r.v)); },
     exp10: function(r) { return XPR.number(Math.pow(10, r.v)); },
-    'false': function(arg) {
-      if(arg) throw TOO_MANY_ARGS;
+    'false': function(rt) {
+      if(rt === XPathResult.NUMBER_TYPE) return XPR.number(0);
+      if(arguments.length>1) throw TOO_MANY_ARGS;
       return XPR.boolean(false);
     },
     'format-date': function(date, format) {
@@ -491,12 +551,14 @@ var openrosa_xpath_extensions = function(settings) {
     },
     pi: function() { return XPR.number(Math.PI); },
     position: function(r) {
-      var node = r.iterateNext();
-      var nodeName = node.tagName;
       var position = 1;
-      while (node.previousElementSibling && node.previousElementSibling.tagName === nodeName) {
-        node = node.previousElementSibling;
-        position++;
+      if(r) {
+        var node = r.iterateNext();
+        var nodeName = node.tagName;
+        while (node.previousElementSibling && node.previousElementSibling.tagName === nodeName) {
+          node = node.previousElementSibling;
+          position++;
+        }
       }
       return XPR.number(position);
     },
@@ -563,11 +625,15 @@ var openrosa_xpath_extensions = function(settings) {
       return XPR.number(out);
     },
     tan: function(r) { return XPR.number(Math.tan(r.v)); },
-    'true': function(arg) {
-      if(arg) throw TOO_MANY_ARGS;
+    'true': function(rt) {
+      if(rt === XPathResult.NUMBER_TYPE) return XPR.number(1);
+      if(arguments.length>1) throw TOO_MANY_ARGS;
       return XPR.boolean(true);
     },
-    uuid: function() { return XPR.string(uuid()); },
+    uuid: function(r) {
+      if(r && r.v) return XPR.string(_randomToken(r.v));
+      return XPR.string(uuid());
+    },
     'weighted-checklist': function(min, max) {
       var i, values = [], weights = [], weightedTrues = 0;
       min = min.v;
@@ -648,6 +714,7 @@ var openrosa_xpath_extensions = function(settings) {
 
   ret.func = func;
   ret.process = process;
+  ret.XPR = XPR;
   ret._now = function(resetTime) {
     var t = new Date();
     if(resetTime) {

@@ -17,7 +17,7 @@ describe( 'native number functions', () => {
             [ 'number(1)', 1 ],
             [ 'number(0.199999)', 0.199999 ],
             [ 'number(-0.199999)', -0.199999 ],
-            //TODO vimago [ 'number(- 0.199999)', -0.199999 ],
+            [ 'number(- 0.199999)', -0.199999 ],
             [ 'number(0.0)', 0 ],
             [ 'number(.0)', 0 ],
             [ 'number(0.)', 0 ]

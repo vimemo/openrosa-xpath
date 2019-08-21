@@ -2,23 +2,28 @@ require('./date-extensions');
 var ExtendedXpathEvaluator = require('./extended-xpath');
 var openrosaExtensions = require('./openrosa-extensions');
 var settings = require('./settings');
+var extensions = openrosaExtensions(settings);
 
 module.exports = (function(){
+
   var module = {
 
     customXPathFunction: {
-			// type: {
-			// 	StringType: StringType,
-			// 	NumberType: NumberType,
-			// 	NodeSetType: NodeSetType,
-			// 	BooleanType: BooleanType
-			// },
-			add: function(name, fnObj){
-				functions[''][name] = fnObj;
+			type: {
+				StringType: extensions.XPR.string,
+				NumberType: extensions.XPR.number,
+				BooleanType: extensions.XPR.boolean,
+				DateType: extensions.XPR.date
+			},
+			add: function(name, fnObj) {
+				extensions.func[name] = fnObj;
 			},
 			remove: function(name) {
-				delete functions[''][name];
-			}
+				delete extensions.func[name];
+			},
+      all: function() {
+        return extensions.func;
+      }
 		},
 
     /**
@@ -58,16 +63,8 @@ module.exports = (function(){
 			var evaluator = new XPathEvaluator(options);
 
 			return {
-				'window': {
-					// XPathException: XPathException,
-					// XPathExpression: XPathExpression,
-					// XPathNSResolver: XPathNSResolver,
-					// XPathResult: XPathResult,
-					// XPathNamespace: XPathNamespace
-				},
 				'document': {
           evaluate: function(e, contextPath, namespaceResolver, resultType, result) {
-            var extensions = openrosaExtensions(settings);
             var wrappedXpathEvaluator = function(v, node, rt) {
               if(resultType < 7 || v.startsWith('//')) resultType = null;
               var wrappedResultType = rt || resultType || XPathResult.ANY_TYPE;

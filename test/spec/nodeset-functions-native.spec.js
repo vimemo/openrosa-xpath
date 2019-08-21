@@ -6,8 +6,8 @@ describe( 'native nodeset functions', () => {
     it( 'last()', () => {
         [
             [ "last()", 1 ],
-            //TODO vimago [ "xhtml:p[last()]", 4 ],
-            //TODO vimago [ "xhtml:p[last()-last()+1]", 1 ]
+            [ "xhtml:p[last()]", 4 ],
+            [ "xhtml:p[last()-last()+1]", 1 ]
         ].forEach( t => {
             const result = g.doc.evaluate( t[ 0 ], g.doc.getElementById( 'testFunctionNodeset2' ), helpers.getXhtmlResolver( g.doc ), g.win.XPathResult.NUMBER_TYPE, null );
             expect( result.numberValue ).to.equal( t[ 1 ] );
@@ -23,7 +23,7 @@ describe( 'native nodeset functions', () => {
 
     it( 'position()', () => {
         [
-            //TODO vimago [ "position()", 1 ],
+            [ "position()", 1 ],
             [ "*[position()=last()]", 4 ],
             [ "*[position()=2]", 2 ],
             [ "xhtml:p[position()=2]", 2 ]
@@ -250,7 +250,7 @@ describe( 'native nodeset functions', () => {
             [ "name(self::node())", g.doc.getElementById( 'testFunctionNodesetElement' ), "div" ], // element
             [ "name()", g.doc.getElementById( 'testFunctionNodesetElement' ), "div" ], // element
             [ "name(node())", g.doc.getElementById( 'testFunctionNodesetElementNested' ), "span" ], // element nested
-            //TODO vimago [ "name(self::node())", g.doc.getElementById( 'testFunctionNodesetElementNested' ), "div" ], // element nested
+            [ "name(self::node())", g.doc.getElementById( 'testFunctionNodesetElementNested' ), "div" ], // element nested
             [ "name()", g.doc.getElementById( 'testFunctionNodesetElementPrefix' ).firstChild, "ev:div2" ], // element
             [ "name()", g.doc.getElementById( 'testFunctionNodesetComment' ).firstChild, "" ], // comment
             [ "name()", g.doc.getElementById( 'testFunctionNodesetText' ).firstChild, "" ], // text

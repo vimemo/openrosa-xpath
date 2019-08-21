@@ -36,8 +36,8 @@ Date.prototype.getTimezoneOffsetAsTime = function() {
   offsetMinutesTotal = this.getTimezoneOffset();
 
   direction = (offsetMinutesTotal < 0) ? '+' : '-';
-  hours = pad2(Math.abs(Math.floor(offsetMinutesTotal / 60)));
-  minutes = pad2(Math.abs(Math.floor(offsetMinutesTotal % 60)));
+  hours = pad2(Math.floor(Math.abs(offsetMinutesTotal / 60)));
+  minutes = pad2(Math.floor(Math.abs(offsetMinutesTotal % 60)));
 
   return direction + hours + ':' + minutes;
 };

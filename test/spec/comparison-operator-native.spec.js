@@ -133,20 +133,18 @@ describe( 'Comparison operator', () => {
                 [ "''", "*" ],
                 [ false, false ], g.doc.getElementById( 'ComparisonOperatorCaseNodesetEmpty' )
             ],
-
-            // TODO vimago
-            // [
-            //     [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodesetEmpty')/*" ],
-            //     [ false, false ], g.doc
-            // ],
-            // [
-            //     [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodeset4to8')/*" ],
-            //     [ true, true ], g.doc
-            // ],
-            // [
-            //     [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodeset6to10')/*" ],
-            //     [ false, true ], g.doc
-            // ]
+            [
+                [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodesetEmpty')/*" ],
+                [ false, false ], g.doc
+            ],
+            [
+                [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodeset4to8')/*" ],
+                [ true, true ], g.doc
+            ],
+            [
+                [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodeset6to10')/*" ],
+                [ false, true ], g.doc
+            ]
         ];
 
         for ( k = 0; k < ops.length; k++ ) // different operators
@@ -411,19 +409,18 @@ describe( 'Comparison operator', () => {
                 [ "*", "''" ],
                 [ false, false, false, false ], g.doc.getElementById( 'ComparisonOperatorCaseNodesetEmpty' )
             ],
-            // TODO vimago
-            // [
-            //     [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodesetEmpty')/*" ],
-            //     [ false, false, false, false ], g.doc
-            // ],
-            // [
-            //     [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodeset4to8')/*" ],
-            //     [ true, true, true, true ], g.doc
-            // ],
-            // [
-            //     [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodeset6to10')/*" ],
-            //     [ true, true, false, false ], g.doc
-            // ]
+            [
+                [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodesetEmpty')/*" ],
+                [ false, false, false, false ], g.doc
+            ],
+            [
+                [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodeset4to8')/*" ],
+                [ true, true, true, true ], g.doc
+            ],
+            [
+                [ "id('ComparisonOperatorCaseNodesetNegative5to5')/*", "id('ComparisonOperatorCaseNodeset6to10')/*" ],
+                [ true, true, false, false ], g.doc
+            ]
         ];
 
         for ( k = 0; k < ops.length; k++ ) // different operators
